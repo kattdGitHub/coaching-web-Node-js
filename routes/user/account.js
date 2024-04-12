@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Controller = require('../../controller/user/account');
-const authentication = require("../../middleware/auth") // Assuming your controller is defined in a separate file
-
+const authentication = require("../../middleware/auth") ;
+const {upload} = require("../../middleware/upload");
+const AppController = require('../../controller/user/users/Institute.js');
 const app = express(); // Define your Express app instance
 
 
@@ -18,10 +19,13 @@ router.get("/get-user-profile",authentication.verifyToken, Controller.getUserPro
 router.post("/forgot-password",Controller.forgotPassword);
 router.post("/reset-password",Controller.resetPassword);
 router.post("/verify-otp",Controller.verifyOtp);
+router.post("/uploadProfileImage",upload.single("photo"),authentication.verifyToken, Controller.uploadProfileImage);
 router.post("/logout",authentication.verifyToken, Controller.logOut);
 router.post("/delete-account",authentication.verifyToken, Controller.deleteAccount);
 router.get("/stripe-connect",Controller.stripeConnect);
 router.get("/payment-intent",authentication.verifyToken, Controller.paymentIntent);
+router.post("/add-location", authentication.verifyToken,AppController.addLocation);
+
 /********************************** ******************************************/
 
 const CountryController = require('../../controller/location/CountryController');

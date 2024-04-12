@@ -1,6 +1,6 @@
 const User = require('../../models/user/User');
 const UserDevice = require('../../models/user/UserDevice');
-const EarnerScreen = require('../../models/user/EarnerScreen');
+const EarnerScreen = require('../../models/user/Institute');
 const Advertisement = require('../../models/user/Advertisement');
 const EarnerLocation = require('../../models/user/EarnerLocation');
 const bcrypt = require('bcrypt');
@@ -426,11 +426,17 @@ function validateFields(fields, isSignUp) {
 }
 
 
-/**************** Edit-User-Profile *************/
 async function editUserProfile(req, res, next) {
   try {
     const userId = req.userId; // Assuming userId is extracted from the authentication token middleware
-    const stripeResponse = req.body.stripe_response; // Assuming stripe_response is provided in the request body
+    const stripeResponse = req.body.stripe_response;
+    const name = req.body.name;
+    const address = req.body.address;
+    const gender = req.body.gender;
+    const age = req.body.age;
+    const phone = req.body.phone;
+    const latitude = req.body.latitude;
+    const longitude = req.body.longitude;
 
     if (!userId) {
       return res.status(401).json({ statusCode: 401, message: "Invalid authentication token" });
@@ -443,10 +449,32 @@ async function editUserProfile(req, res, next) {
     }
 
     // Update user data and set stripe_connect to true if stripe_response is provided
-    if (stripeResponse) {
+    if (stripeResponse !== undefined && stripeResponse !== null) {
       user.stripe_connect = true;
-      // Assuming you have a field named stripe_response in your user schema to store the response
       user.stripe_response = stripeResponse;
+    }
+
+    // Update other fields if they are not null
+    if (name !== undefined && name !== null) {
+      user.name = name;
+    }
+    if (address !== undefined && address !== null) {
+      user.address = address;
+    }
+    if (gender !== undefined && gender !== null) {
+      user.gender = gender;
+    }
+    if (age !== undefined && age !== null) {
+      user.age = age;
+    }
+    if (phone !== undefined && phone !== null) {
+      user.phone = phone;
+    }
+    if (latitude !== undefined && latitude !== null) {
+      user.latitude = latitude;
+    }
+    if (longitude !== undefined && longitude !== null) {
+      user.longitude = longitude;
     }
 
     // Save the updated user data
@@ -459,6 +487,7 @@ async function editUserProfile(req, res, next) {
     next(error);
   }
 }
+
 
 /**************** Get-User-Profile *************/
 async function getUserProfile(req, res, next) {
@@ -482,14 +511,9 @@ async function getUserProfile(req, res, next) {
     // Create a new object including user data and social_login flag
     let userData = { ...user.toObject(), social_login: isLoginSocial , address: address , latitude: latitude , longitude: longitude };
 
-  
-    // If user role is 1, fetch data from earnerLocation model
-    if (user.user_role === 'Teacher') {
-      console.log(user._id,"cxzcxzc");
-      const earnerLocationData = await EarnerLocation.findOne({ userId: user._id });
-      if (earnerLocationData) {
-        userData = { ...userData, earnerLocation: earnerLocationData.toObject() };
-      }
+    const earnerLocationData = await EarnerLocation.findOne({ userId: user._id });
+    if (earnerLocationData) {
+      userData = { ...userData, location: earnerLocationData.toObject() };
     }
 
     // Send success response with user data including social_login and earnerLocation if applicable
@@ -724,7 +748,56 @@ async function resetPassword(req, res, next) {
   }
 }
 
+/**************** Upload Profile Image *************/
 
+const multer = require('multer');
+
+// Set up multer for file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/profiles'); 
+    // Save uploaded files to 'uploads/profiles' directory
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname); // Add timestamp to filename to make it unique
+  }
+});
+
+const upload = multer({ storage: storage });
+
+/**************** Upload-Profile-Image *************/
+async function uploadProfileImage(req, res, next) {
+  try {
+    const userId = req.userId; // Assuming userId is extracted from the authentication token middleware
+    if (!userId) {
+      return res.status(401).json({ statusCode: 401, message: "Invalid authentication token" });
+    }
+
+    // Check if a file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ statusCode: 400, message: "Please upload a file" });
+    }
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ statusCode: 404, message: "User not found" });
+    }
+
+    let photo = req?.file?.path;
+       // Save the file path to the user's profileImage field
+       if (photo) {
+    user.profileImage = photo;
+    }
+    // Save the updated user data
+    await user.save();
+
+    // Send success response with user data including profile image path
+    res.status(200).json({ statusCode: 200, message: "Profile image uploaded successfully", userData: user });
+  } catch (error) {
+    console.error("Caught error:", error);
+    next(error);
+  }
+}
 
 module.exports = {
     signUp,
@@ -740,4 +813,5 @@ module.exports = {
     resetPassword,
     logOut,
     deleteAccount,
+    uploadProfileImage,
 };

@@ -1,7 +1,7 @@
 const User = require('../../../models/user/User');
 const Advertisement = require('../../../models/user/Advertisement');
 const Instruction = require('../../../models/user/Instructions');
-const EarnerScreen = require('../../../models/user/EarnerScreen');
+const EarnerScreen = require('../../../models/user/Institute');
 const screenAlot = require('../../../models/user/screenAlot');
 const geoapifyApiKey = process.env.GEOAPIFY_KEY;
 
